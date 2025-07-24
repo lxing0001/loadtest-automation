@@ -27,7 +27,7 @@ export const options = {
     baseline_test: {
       executor: 'constant-vus',
       vus: 1,
-      duration: '6s',
+      duration: '60s',
     },
   },
   thresholds: {
