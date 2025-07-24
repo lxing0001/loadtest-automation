@@ -222,13 +222,32 @@ class K6CoreReportGenerator {
       this.coreMetrics.throughput = Math.round(metrics.http_reqs.rate * 100) / 100;
     }
     
+    // 如果有chat相关指标，显示详细信息
+    if (metrics.chat_response_duration) {
+      console.log('📋 详细接口统计:');
+      console.log(`   - Create-Session: 成功率 ${metrics.session_creation_success_rate ? Math.round(metrics.session_creation_success_rate.value * 100) : 0}%`);
+      console.log(`   - Chat: 成功率 ${metrics.chat_response_success_rate ? Math.round(metrics.chat_response_success_rate.value * 100) : 0}%`);
+      console.log(`   - Chat平均响应时间: ${Math.round(metrics.chat_response_duration.avg || 0)} ms`);
+    }
+    
     return true; // 数据解析成功
   }
 
   // 从HTTP请求数据中提取接口名称
   extractInterfaceName(data) {
     try {
+      console.log('🔍 检查接口名称提取条件:');
+      console.log('   - data.metrics存在:', !!data.metrics);
+      console.log('   - chat_response_success_rate存在:', !!(data.metrics && data.metrics.chat_response_success_rate));
+      console.log('   - chat_response_duration存在:', !!(data.metrics && data.metrics.chat_response_duration));
+      
+      // 检查是否包含chat相关的指标，如果有则返回组合接口名称
+      if (data.metrics && data.metrics.chat_response_success_rate) {
+        console.log('✅ 检测到chat接口，返回组合接口名称');
+        return '/godgpt/guest/create-session + /godgpt/guest/chat';
+      }
       // 从根组的名称推断接口，或使用默认值
+      console.log('⚠️ 未检测到chat接口，使用默认接口名称');
       return '/godgpt/guest/create-session';
     } catch (error) {
       console.log('⚠️ 接口名称提取失败，使用默认值');
@@ -261,24 +280,29 @@ class K6CoreReportGenerator {
       this.coreMetrics.maxResponseTime = Math.round(metrics.http_req_duration.max || 0);
     }
     
-    // API成功率（只统计API功能性检查，不包括性能检查）
+    // API成功率 - 统计所有检查项的成功率
     if (data.root_group && data.root_group.checks) {
       let totalChecks = 0;
       let passedChecks = 0;
       
+      console.log('🔍 检查项详情:');
       for (const checkName in data.root_group.checks) {
-        // 只统计以"API-"开头的检查项，排除性能检查
-        if (checkName.startsWith('API-')) {
-          const check = data.root_group.checks[checkName];
-          totalChecks += (check.passes || 0) + (check.fails || 0);
-          passedChecks += (check.passes || 0);
-        }
+        const check = data.root_group.checks[checkName];
+        const passes = check.passes || 0;
+        const fails = check.fails || 0;
+        totalChecks += passes + fails;
+        passedChecks += passes;
+        console.log(`   - ${checkName}: 成功${passes}次, 失败${fails}次`);
       }
+      
+      console.log(`📊 总计: 成功${passedChecks}次, 失败${totalChecks - passedChecks}次, 总计${totalChecks}次`);
       
       if (totalChecks > 0) {
         this.coreMetrics.apiSuccessRate = Math.round((passedChecks / totalChecks) * 10000) / 100; // 保留2位小数
+        console.log(`📈 API成功率: ${this.coreMetrics.apiSuccessRate}%`);
       } else {
         this.coreMetrics.apiSuccessRate = 100; // 默认100%
+        console.log(`📈 API成功率: 100% (默认值)`);
       }
     }
     
@@ -354,6 +378,10 @@ class K6CoreReportGenerator {
   // 生成HTML内容
   generateHtmlContent() {
     const currentTime = new Date().toLocaleString('zh-CN');
+    
+    // 读取原始数据以获取详细接口信息
+    const data = this.parseJsonFile();
+    const detailedInterfaceTable = this.generateDetailedInterfaceTable(data);
     
     return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -526,6 +554,8 @@ class K6CoreReportGenerator {
                     </tr>
                 </tbody>
             </table>
+            
+            ${detailedInterfaceTable}
         </div>
         
         <div class="footer">
@@ -534,6 +564,61 @@ class K6CoreReportGenerator {
     </div>
 </body>
 </html>`;
+  }
+
+  // 生成详细接口统计表格
+  generateDetailedInterfaceTable(data) {
+    console.log('🔍 检查详细接口统计条件:');
+    console.log('   - data存在:', !!data);
+    console.log('   - data.metrics存在:', !!(data && data.metrics));
+    console.log('   - chat_response_success_rate存在:', !!(data && data.metrics && data.metrics.chat_response_success_rate));
+    console.log('   - chat_response_duration存在:', !!(data && data.metrics && data.metrics.chat_response_duration));
+    
+    // 只要有chat相关的指标就显示详细统计
+    if (!data || !data.metrics || !data.metrics.chat_response_success_rate) {
+      console.log('❌ 不满足显示详细接口统计的条件，返回空表格');
+      return '';
+    }
+    
+    const metrics = data.metrics;
+    const createSessionSuccessRate = metrics.session_creation_success_rate ? 
+      Math.round(metrics.session_creation_success_rate.value * 100) : 0;
+    const chatSuccessRate = metrics.chat_response_success_rate ? 
+      Math.round(metrics.chat_response_success_rate.value * 100) : 0;
+    const chatAvgResponseTime = metrics.chat_response_duration ? 
+      Math.round(metrics.chat_response_duration.avg || 0) : 'N/A';
+    
+    return `
+        <h2 style="margin-top: 30px; color: #4facfe; text-align: center;">📋 详细接口统计</h2>
+        <table class="metrics-table" style="margin-top: 20px;">
+            <thead>
+                <tr>
+                    <th>接口名称</th>
+                    <th>成功率</th>
+                    <th>平均响应时间（ms）</th>
+                    <th>状态</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="interface-name">/godgpt/guest/create-session</td>
+                    <td class="success-rate">${createSessionSuccessRate}%</td>
+                    <td class="response-time">-</td>
+                    <td style="color: ${createSessionSuccessRate === 100 ? '#28a745' : '#dc3545'}">
+                        ${createSessionSuccessRate === 100 ? '✅ 正常' : '❌ 异常'}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="interface-name">/godgpt/guest/chat</td>
+                    <td class="success-rate">${chatSuccessRate}%</td>
+                    <td class="response-time">${chatAvgResponseTime}</td>
+                    <td style="color: ${chatSuccessRate === 100 ? '#28a745' : '#dc3545'}">
+                        ${chatSuccessRate === 100 ? '✅ 正常' : '❌ 异常'}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    `;
   }
 
   // 运行报告生成 ⭐ 改进错误处理
