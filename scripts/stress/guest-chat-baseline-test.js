@@ -6,6 +6,7 @@ import { Rate, Trend } from 'k6/metrics';
 const sessionCreationRate = new Rate('session_creation_success_rate');
 const chatResponseRate = new Rate('chat_response_success_rate');
 const chatResponseDuration = new Trend('chat_response_duration');
+const createResponseDuration = new Trend('create_response_duration');
 const endToEndDuration = new Trend('end_to_end_duration');
 
 // 从配置文件加载环境配置和测试数据
@@ -95,6 +96,11 @@ export default function(data) {
   
   // 记录会话创建指标
   sessionCreationRate.add(isSessionCreated);
+  
+  // 记录create-session响应时间
+  if (createSessionResponse.status === 200) {
+    createResponseDuration.add(createSessionResponse.timings.duration);
+  }
 
   // 如果会话创建失败，跳过后续步骤
   if (!isSessionCreated) {

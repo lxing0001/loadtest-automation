@@ -358,16 +358,16 @@ class K6CoreReportGenerator {
     fs.writeFileSync(reportPath, htmlContent, 'utf8');
     
     console.log(`✅ 核心指标HTML报告生成完成: ${reportPath}`);
-    console.log(`📊 核心指标概览:`);
-    console.log(`   - 接口名称: ${this.coreMetrics.interfaceName}`);
-    console.log(`   - 虚拟用户数: ${this.coreMetrics.virtualUsers}`);
-    console.log(`   - 执行时长: ${this.coreMetrics.durationSeconds} 秒`);
-    console.log(`   - 总请求数: ${this.coreMetrics.totalRequests}`);
-    console.log(`   - 平均响应时间: ${this.coreMetrics.avgResponseTime} ms`);
-    console.log(`   - 95分位响应时间: ${this.coreMetrics.p95ResponseTime} ms`);
-    console.log(`   - 最大响应时间: ${this.coreMetrics.maxResponseTime} ms`);
-    console.log(`   - API成功率: ${this.coreMetrics.apiSuccessRate}%`);
-    console.log(`   - 吞吐量: ${this.coreMetrics.throughput} 请求/秒`);
+    // console.log(`📊 核心指标概览:`);
+    // console.log(`   - 接口名称: ${this.coreMetrics.interfaceName}`);
+    // console.log(`   - 虚拟用户数: ${this.coreMetrics.virtualUsers}`);
+    // console.log(`   - 执行时长: ${this.coreMetrics.durationSeconds} 秒`);
+    // console.log(`   - 总请求数: ${this.coreMetrics.totalRequests}`);
+    // console.log(`   - 平均响应时间: ${this.coreMetrics.avgResponseTime} ms`);
+    // console.log(`   - 95分位响应时间: ${this.coreMetrics.p95ResponseTime} ms`);
+    // console.log(`   - 最大响应时间: ${this.coreMetrics.maxResponseTime} ms`);
+    // console.log(`   - API成功率: ${this.coreMetrics.apiSuccessRate}%`);
+    // console.log(`   - 吞吐量: ${this.coreMetrics.throughput} 请求/秒`);
     
     // 自动打开HTML报告
     this.openHtmlReport(reportPath);
@@ -526,35 +526,6 @@ class K6CoreReportGenerator {
         </div>
         
         <div class="content">
-            <table class="metrics-table">
-                <thead>
-                    <tr>
-                        <th>接口名称</th>
-                        <th>虚拟用户数</th>
-                        <th>执行时长（s）</th>
-                        <th>总请求数</th>
-                        <th>平均响应时间（ms）</th>
-                        <th>95分位响应时间（ms）</th>
-                        <th>最大响应时间（ms）</th>
-                        <th>API成功率</th>
-                        <th>吞吐量（req/s）</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="interface-name">${this.coreMetrics.interfaceName}</td>
-                        <td>${this.coreMetrics.virtualUsers}</td>
-                        <td>${this.coreMetrics.durationSeconds}</td>
-                        <td>${this.coreMetrics.totalRequests}</td>
-                        <td class="response-time">${this.coreMetrics.avgResponseTime}</td>
-                        <td class="response-time">${this.coreMetrics.p95ResponseTime}</td>
-                        <td class="response-time">${this.coreMetrics.maxResponseTime}</td>
-                        <td class="success-rate">${this.coreMetrics.apiSuccessRate}%</td>
-                        <td>${this.coreMetrics.throughput}</td>
-                    </tr>
-                </tbody>
-            </table>
-            
             ${detailedInterfaceTable}
         </div>
         
@@ -580,44 +551,180 @@ class K6CoreReportGenerator {
       return '';
     }
     
+    console.log('✅ 满足显示详细接口统计的条件，生成表格');
+    
     const metrics = data.metrics;
+    
+    // 提取create-session接口的统计信息
     const createSessionSuccessRate = metrics.session_creation_success_rate ? 
       Math.round(metrics.session_creation_success_rate.value * 100) : 0;
+    
+    // 为create-session接口使用专门的create_response_duration指标
+    const createSessionAvgResponseTime = metrics.create_response_duration ? 
+      Math.round(metrics.create_response_duration.avg || 0) : 'N/A';
+    const createSessionP95ResponseTime = metrics.create_response_duration ? 
+      Math.round(metrics.create_response_duration['p(95)'] || 0) : 'N/A';
+    const createSessionMaxResponseTime = metrics.create_response_duration ? 
+      Math.round(metrics.create_response_duration.max || 0) : 'N/A';
+    
+    // 提取chat接口的统计信息
     const chatSuccessRate = metrics.chat_response_success_rate ? 
       Math.round(metrics.chat_response_success_rate.value * 100) : 0;
     const chatAvgResponseTime = metrics.chat_response_duration ? 
       Math.round(metrics.chat_response_duration.avg || 0) : 'N/A';
+    const chatP95ResponseTime = metrics.chat_response_duration ? 
+      Math.round(metrics.chat_response_duration['p(95)'] || 0) : 'N/A';
+    const chatMaxResponseTime = metrics.chat_response_duration ? 
+      Math.round(metrics.chat_response_duration.max || 0) : 'N/A';
+    
+    // 提取执行时长和虚拟用户数信息
+    const totalDuration = this.coreMetrics.durationSeconds || 60;
+    const virtualUsers = this.coreMetrics.virtualUsers || 1;
+    
+    // 从metrics中获取实际的请求数
+    const createSessionRequests = metrics.session_creation_success_rate ? 
+      (metrics.session_creation_success_rate.passes || 0) : 0;
+    const chatRequests = metrics.chat_response_success_rate ? 
+      (metrics.chat_response_success_rate.passes || 0) : 0;
+    
+    console.log('📊 Create-Session接口统计:');
+    console.log('   - 成功率:', createSessionSuccessRate + '%');
+    console.log('   - 请求数:', createSessionRequests + ' 次');
+    console.log('   - 平均响应时间:', createSessionAvgResponseTime + ' ms');
+    console.log('   - 95分位响应时间:', createSessionP95ResponseTime + ' ms');
+    console.log('   - 最大响应时间:', createSessionMaxResponseTime + ' ms');
+    
+    console.log('📊 Chat接口统计:');
+    console.log('   - 成功率:', chatSuccessRate + '%');
+    console.log('   - 请求数:', chatRequests + ' 次');
+    console.log('   - 平均响应时间:', chatAvgResponseTime + ' ms');
+    console.log('   - 95分位响应时间:', chatP95ResponseTime + ' ms');
+    console.log('   - 最大响应时间:', chatMaxResponseTime + ' ms');
     
     return `
-        <h2 style="margin-top: 30px; color: #4facfe; text-align: center;">📋 详细接口统计</h2>
-        <table class="metrics-table" style="margin-top: 20px;">
-            <thead>
-                <tr>
-                    <th>接口名称</th>
-                    <th>成功率</th>
-                    <th>平均响应时间（ms）</th>
-                    <th>状态</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td class="interface-name">/godgpt/guest/create-session</td>
-                    <td class="success-rate">${createSessionSuccessRate}%</td>
-                    <td class="response-time">-</td>
-                    <td style="color: ${createSessionSuccessRate === 100 ? '#28a745' : '#dc3545'}">
-                        ${createSessionSuccessRate === 100 ? '✅ 正常' : '❌ 异常'}
-                    </td>
-                </tr>
-                <tr>
-                    <td class="interface-name">/godgpt/guest/chat</td>
-                    <td class="success-rate">${chatSuccessRate}%</td>
-                    <td class="response-time">${chatAvgResponseTime}</td>
-                    <td style="color: ${chatSuccessRate === 100 ? '#28a745' : '#dc3545'}">
-                        ${chatSuccessRate === 100 ? '✅ 正常' : '❌ 异常'}
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <h2 style="margin-top: 30px; color: #4facfe; text-align: center;">📋 接口独立统计</h2>
+        
+        <!-- Create-Session接口独立统计 -->
+        <div style="margin-top: 30px; background: #f8f9fa; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <h3 style="color: #4facfe; margin-bottom: 15px; text-align: center;">🔐 Create-Session接口统计</h3>
+            <table class="metrics-table" style="margin-top: 10px;">
+                <thead>
+                    <tr>
+                        <th>指标名称</th>
+                        <th>数值</th>
+                        <th>状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="interface-name">虚拟用户数</td>
+                        <td class="success-rate">${virtualUsers} 个</td>
+                        <td style="color: #28a745">✅ 正常</td>
+                    </tr>
+                    <tr>
+                        <td class="interface-name">执行时长</td>
+                        <td class="response-time">${totalDuration} 秒</td>
+                        <td style="color: #28a745">✅ 完整执行</td>
+                    </tr>
+                    <tr>
+                        <td class="interface-name">请求数</td>
+                        <td class="success-rate">${createSessionRequests} 次</td>
+                        <td style="color: ${createSessionRequests > 0 ? '#28a745' : '#dc3545'}">
+                            ${createSessionRequests > 0 ? '✅ 有请求' : '❌ 无请求'}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="interface-name">成功率</td>
+                        <td class="success-rate">${createSessionSuccessRate}%</td>
+                        <td style="color: ${createSessionSuccessRate === 100 ? '#28a745' : '#dc3545'}">
+                            ${createSessionSuccessRate === 100 ? '✅ 正常' : '❌ 异常'}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="interface-name">平均响应时间</td>
+                        <td class="response-time">${createSessionAvgResponseTime} ms</td>
+                        <td style="color: ${createSessionAvgResponseTime < 1000 ? '#28a745' : createSessionAvgResponseTime < 2000 ? '#ffc107' : '#dc3545'}">
+                            ${createSessionAvgResponseTime < 1000 ? '✅ 优秀' : createSessionAvgResponseTime < 2000 ? '⚠️ 一般' : '❌ 较慢'}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="interface-name">95分位响应时间</td>
+                        <td class="response-time">${createSessionP95ResponseTime} ms</td>
+                        <td style="color: ${createSessionP95ResponseTime < 1500 ? '#28a745' : createSessionP95ResponseTime < 3000 ? '#ffc107' : '#dc3545'}">
+                            ${createSessionP95ResponseTime < 1500 ? '✅ 优秀' : createSessionP95ResponseTime < 3000 ? '⚠️ 一般' : '❌ 较慢'}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="interface-name">最大响应时间</td>
+                        <td class="response-time">${createSessionMaxResponseTime} ms</td>
+                        <td style="color: ${createSessionMaxResponseTime < 2000 ? '#28a745' : createSessionMaxResponseTime < 4000 ? '#ffc107' : '#dc3545'}">
+                            ${createSessionMaxResponseTime < 2000 ? '✅ 优秀' : createSessionMaxResponseTime < 4000 ? '⚠️ 一般' : '❌ 较慢'}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Chat接口独立统计 -->
+        <div style="margin-top: 30px; background: #f8f9fa; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <h3 style="color: #4facfe; margin-bottom: 15px; text-align: center;">💬 Chat接口统计</h3>
+            <table class="metrics-table" style="margin-top: 10px;">
+                <thead>
+                    <tr>
+                        <th>指标名称</th>
+                        <th>数值</th>
+                        <th>状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="interface-name">虚拟用户数</td>
+                        <td class="success-rate">${virtualUsers} 个</td>
+                        <td style="color: #28a745">✅ 正常</td>
+                    </tr>
+                    <tr>
+                        <td class="interface-name">执行时长</td>
+                        <td class="response-time">${totalDuration} 秒</td>
+                        <td style="color: #28a745">✅ 完整执行</td>
+                    </tr>
+                    <tr>
+                        <td class="interface-name">请求数</td>
+                        <td class="success-rate">${chatRequests} 次</td>
+                        <td style="color: ${chatRequests > 0 ? '#28a745' : '#dc3545'}">
+                            ${chatRequests > 0 ? '✅ 有请求' : '❌ 无请求'}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="interface-name">成功率</td>
+                        <td class="success-rate">${chatSuccessRate}%</td>
+                        <td style="color: ${chatSuccessRate === 100 ? '#28a745' : '#dc3545'}">
+                            ${chatSuccessRate === 100 ? '✅ 正常' : '❌ 异常'}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="interface-name">平均响应时间</td>
+                        <td class="response-time">${chatAvgResponseTime} ms</td>
+                        <td style="color: ${chatAvgResponseTime < 1000 ? '#28a745' : chatAvgResponseTime < 2000 ? '#ffc107' : '#dc3545'}">
+                            ${chatAvgResponseTime < 1000 ? '✅ 优秀' : chatAvgResponseTime < 2000 ? '⚠️ 一般' : '❌ 较慢'}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="interface-name">95分位响应时间</td>
+                        <td class="response-time">${chatP95ResponseTime} ms</td>
+                        <td style="color: ${chatP95ResponseTime < 1500 ? '#28a745' : chatP95ResponseTime < 3000 ? '#ffc107' : '#dc3545'}">
+                            ${chatP95ResponseTime < 1500 ? '✅ 优秀' : chatP95ResponseTime < 3000 ? '⚠️ 一般' : '❌ 较慢'}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="interface-name">最大响应时间</td>
+                        <td class="response-time">${chatMaxResponseTime} ms</td>
+                        <td style="color: ${chatMaxResponseTime < 2000 ? '#28a745' : chatMaxResponseTime < 4000 ? '#ffc107' : '#dc3545'}">
+                            ${chatMaxResponseTime < 2000 ? '✅ 优秀' : chatMaxResponseTime < 4000 ? '⚠️ 一般' : '❌ 较慢'}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     `;
   }
 
