@@ -277,6 +277,10 @@ if [ -f "$ERROR_LOG_FILE" ]; then
         ERROR_COUNT=$(grep -c "ERROR:" "$ERROR_LOG_FILE" 2>/dev/null || echo "0")
         WARNING_COUNT=$(grep -c "WARNING:" "$ERROR_LOG_FILE" 2>/dev/null || echo "0")
         
+        # 去除可能的换行符
+        ERROR_COUNT=$(echo "$ERROR_COUNT" | tr -d '\n\r')
+        WARNING_COUNT=$(echo "$WARNING_COUNT" | tr -d '\n\r')
+        
         if [ "$ERROR_COUNT" -gt 0 ]; then
             print_warning "发现 $ERROR_COUNT 个错误，建议查看: cat $ERROR_LOG_FILE"
         elif [ "$WARNING_COUNT" -gt 0 ]; then

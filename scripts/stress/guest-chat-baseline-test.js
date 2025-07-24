@@ -83,11 +83,11 @@ export default function(data) {
     headers: sessionHeaders,
     timeout: '30s',
   };
-  console.log('📤 Create请求体:', JSON.stringify(createSessionPayload, null, 2));
+  // console.log('📤 Create请求体:', JSON.stringify(createSessionPayload, null, 2));
   const createSessionResponse = http.post(createSessionUrl, createSessionPayload, createSessionParams);
 
-  console.log('🔍 Create-Session响应状态码:', createSessionResponse.status);
-  console.log('🔍 Create-Session响应体:', createSessionResponse.body);
+  // console.log('🔍 Create-Session响应状态码:', createSessionResponse.status);
+  // console.log('🔍 Create-Session响应体:', createSessionResponse.body);
   
   // 检查会话创建是否成功 - 只检查HTTP状态码200
   const isSessionCreated = check(createSessionResponse, {
@@ -143,18 +143,18 @@ export default function(data) {
   };
   
   // 打印chat请求的详细信息进行debug
-  console.log('📤 Chat请求URL:', `${data.baseUrl}/godgpt/guest/chat`);
-  console.log('📤 Chat请求体:', JSON.stringify(chatPayload, null, 2));
+  // console.log('📤 Chat请求URL:', `${data.baseUrl}/godgpt/guest/chat`);
+  // console.log('📤 Chat请求体:', JSON.stringify(chatPayload, null, 2));
   // console.log('📤 Chat请求头:', JSON.stringify(chatHeaders, null, 2));
   
   const chatResponse = http.post(`${data.baseUrl}/godgpt/guest/chat`, JSON.stringify(chatPayload), chatParams);
   
   // 打印chatResponse的详细信息进行debug
-  console.log('🔍 Chat响应状态码:', chatResponse.status);
+  // console.log('🔍 Chat响应状态码:', chatResponse.status);
   // console.log('🔍 Chat响应头:', JSON.stringify(chatResponse.headers, null, 2));
   // console.log('🔍 Chat响应体长度:', chatResponse.body ? chatResponse.body.length : 0);
-  console.log('🔍 Chat响应体:', chatResponse.body);
-  console.log('🔍 Chat响应时间:', chatResponse.timings.duration, 'ms');
+  // console.log('🔍 Chat响应体:', chatResponse.body);
+  // console.log('🔍 Chat响应时间:', chatResponse.timings.duration, 'ms');
   
   // 验证聊天响应 - 只检查HTTP状态码200
   const isChatSuccess = chatResponse.status === 200;
