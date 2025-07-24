@@ -4,10 +4,10 @@ import { Rate, Trend } from 'k6/metrics';
 
 // 自定义指标
 const sessionCreationRate = new Rate('session_creation_success_rate');
-const sessionCreationDuration = new Trend('session_creation_duration');
+const createResponseDuration = new Trend('create_response_duration');
 
 // 从配置文件加载环境配置和测试数据
-const config = JSON.parse(open('../../config/env.user.json'));
+const config = JSON.parse(open('../../config/env.dev.json'));
 const testData = JSON.parse(open('../../config/test-data.json'));
 
 // 生成随机IP地址的函数
@@ -24,7 +24,7 @@ export const options = {
     baseline_test: {
       executor: 'constant-vus',
       vus: 1,
-      duration: '6s',
+      duration: '60s',
     },
   },
   thresholds: {
@@ -59,7 +59,7 @@ export default function(data) {
   const sessionHeaders = {
     'accept': '*/*',
     'accept-language': 'zh-CN,zh;q=0.9',
-    'authorization': 'Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IkIyM0JDQzBFNjY0NkIxMzZEMThBMjFCRDBBNzA0NTQzQkMxMDkxN0MiLCJ4NXQiOiJzanZNRG1aR3NUYlJpaUc5Q25CRlE3d1FrWHciLCJ0eXAiOiJhdCtqd3QifQ.eyJpc3MiOiJodHRwczovL2F1dGgtc3RhdGlvbi5hZXZhdGFyLmFpLyIsImV4cCI6MTc1MzUwNzgzNSwiaWF0IjoxNzUzMzM1MDM2LCJhdWQiOiJBZXZhdGFyIiwic2NvcGUiOiJBZXZhdGFyIG9mZmxpbmVfYWNjZXNzIiwianRpIjoiNWJkYThkNzEtNDVlOS00ZTU2LWFiZjItNThlOGE1ODQxMjFiIiwic3ViIjoiZGY1YmQzZTItODQ2ZC00ZTU5LWFjZjctY2Q2YzhlZWE4YTczIiwicHJlZmVycmVkX3VzZXJuYW1lIjoieGluZ2xpeGluMTk4OEBnbWFpbC5jb21AZ29vZ2xlIiwiZW1haWwiOiIwNmNhZDBiNDczM2Y0NDk3YjRjMWEwOTQ0YzQxYTA3ZkBBQlAuSU8iLCJyb2xlIjoiYmFzaWNVc2VyIiwicGhvbmVfbnVtYmVyX3ZlcmlmaWVkIjoiRmFsc2UiLCJlbWFpbF92ZXJpZmllZCI6IkZhbHNlIiwidW5pcXVlX25hbWUiOiJ4aW5nbGl4aW4xOTg4QGdtYWlsLmNvbUBnb29nbGUiLCJzZWN1cml0eV9zdGFtcCI6IjJNU1ZHVEgzTVVWS05ITzNONFVPVFNTT0JUUU5HWkFNIiwib2lfcHJzdCI6IkFldmF0YXJBdXRoU2VydmVyIiwib2lfYXVfaWQiOiJjMTJlMTM4ZC00ZjVkLWViYjUtMGNlNC0zYTFiNDM3MWQyMjkiLCJjbGllbnRfaWQiOiJBZXZhdGFyQXV0aFNlcnZlciIsIm9pX3Rrbl9pZCI6ImNmZGQ0OTQ4LTE1NmItZjQyZi03YTVmLTNhMWI0ZDE2NTI2YyJ9.dwLY1wfRdENFvZHuqgy3mXW7KBVJyt08j57UT2YV8HbaEdd0IpUa4ex6VTZDJ048EkPAMmlDOV9jU5aw3c0xEgbhKHHo070hsExLip9wDHukFPYJaDW5SC1ua1AFBhZTIuctlJiKfAwYtLJTpM_kdKB-EVMUK3ndeIrZfnjqZie_bStrWHArYmaEIB-Q8A7FvooRuv8AFkJ-v0NH9QYF4Wse2DQnUGElTc4CJY-M1NEj0OJybWWMYKQvqGURpb1Dy2ddD43knyLArL84IrpDjFAR3xX8F9NkKJ20I8iDoRCLWci8qn_yJSFVtJoEQO9guVpcD3YbDnBCKIh7n3BVDw',
+    'authorization': 'Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IjVEQzMyOTBDQzUyRTU2OEM0MEQ0ODA1NDc0REQ5NjMzOEM5MTAzMkMiLCJ4NXQiOiJYY01wRE1VdVZveEExSUJVZE4yV000eVJBeXciLCJ0eXAiOiJhdCtqd3QifQ.eyJpc3MiOiJodHRwczovL2F1dGgtc3RhdGlvbi1zdGFnaW5nLmFldmF0YXIuYWkvIiwiZXhwIjoxNzUzNTE5Nzc3LCJpYXQiOjE3NTMzNDY5NzgsImF1ZCI6IkFldmF0YXIiLCJzY29wZSI6IkFldmF0YXIgb2ZmbGluZV9hY2Nlc3MiLCJqdGkiOiJhZWQwNDI5Ni1mMWZkLTQxNGUtODhjNS02ZmMwNmVlZWFjNWYiLCJzdWIiOiJhZjQ4N2NkNy00YzkzLTRmZjctYTA1NS02MDNiNmE2Mzg3NjciLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJoYWhhbmljZWNhdEBnbWFpbC5jb21AZ29vZ2xlIiwiZW1haWwiOiJhMzg4MDNkMDY0ZGU0NWY0OTY5OWRhZTJkYjU4ZWZlOUBBQlAuSU8iLCJyb2xlIjoiYmFzaWNVc2VyIiwicGhvbmVfbnVtYmVyX3ZlcmlmaWVkIjoiRmFsc2UiLCJlbWFpbF92ZXJpZmllZCI6IkZhbHNlIiwidW5pcXVlX25hbWUiOiJoYWhhbmljZWNhdEBnbWFpbC5jb21AZ29vZ2xlIiwic2VjdXJpdHlfc3RhbXAiOiI3UEZZV1NZTFFDUjI2VERWT0EzM05WRUxISFdSRlhLUCIsIm9pX3Byc3QiOiJBZXZhdGFyQXV0aFNlcnZlciIsIm9pX2F1X2lkIjoiMWE2NWRjZDQtZTM4ZC0wNzM4LTMyMTUtM2ExYjRkY2M4OWQ3IiwiY2xpZW50X2lkIjoiQWV2YXRhckF1dGhTZXJ2ZXIiLCJvaV90a25faWQiOiJhM2M5MzNkOC0yZmZiLWRjOWEtNjljNi0zYTFiNGRjYzg5ZGMifQ.RYQ8izYLQiyW3cu9s77tII0bUDwULpJZkfcY_OWsKgxonGdjPDX0-nSCkKQ3xTxr7Kw-xyWZbd3nnWEh_9_rNcPkOVr2Pgvs1WQsrFPOND-ohkJciuKQVMqosQrL8R3_nUyEMH3WfiDqgRg9q0isR6xtKGA9es2sef9JLGcpwCm-bximgjrnNms7MQoIhka8QE0x_mxCi0ryAFDL74k09PcB03fG2WW7EX-spFoV6z16_qz3eY2h7_ov82ceWhX_J7xkRnoqVSwzNlBnw4uMrBTrOHnMGeKKgufO0PmuY_M_UAXQ7hGNWCiVyj_DCRc_cPTF4gD7rftOOjbw64691g',
     'content-type': 'application/json',
     'origin': config.origin,
     'priority': 'u=1, i',
@@ -115,13 +115,10 @@ export default function(data) {
     console.log('📄 原始响应体:', createSessionResponse.body);
   }
   
-  // 记录响应时间
-  sessionCreationDuration.add(createSessionResponse.timings.duration);
-  
-  // 计算端到端响应时间
-  const endTime = Date.now();
-  const endToEndTime = endTime - startTime;
-  console.log('🔍 端到端响应时间:', endToEndTime, 'ms');
+  // 记录create-session响应时间
+  if (createSessionResponse.status === 200) {
+    createResponseDuration.add(createSessionResponse.timings.duration);
+  }
 }
 
 // 测试清理阶段

@@ -571,7 +571,7 @@ class K6CoreReportGenerator {
         Math.round(metrics.session_creation_success_rate.value * 100) : 
         (metrics.api_call_success_rate ? Math.round(metrics.api_call_success_rate.value * 100) : 0);
       
-      const createSessionAvgResponseTime = metrics.create_response_duration ? 
+        const createSessionAvgResponseTime = metrics.create_response_duration ? 
         Math.round(metrics.create_response_duration.avg || 0) : 
         (metrics.api_call_duration ? Math.round(metrics.api_call_duration.avg || 0) : 'N/A');
       const createSessionP95ResponseTime = metrics.create_response_duration ? 
@@ -583,11 +583,16 @@ class K6CoreReportGenerator {
       
       const createSessionRequests = metrics.session_creation_success_rate ? 
         (metrics.session_creation_success_rate.passes || 0) : 
-        (metrics.api_call_success_rate ? (metrics.api_call_success_rate.passes || 0) : 0);
+        (metrics.api_call_success_rate ? (metrics.api_call_success_rate.passes || 0) : 0);    
+     
+      // 根据指标类型判断是游客接口还是已登录用户接口
+      const isUserSession = metrics.session_creation_success_rate && !metrics.api_call_success_rate;
+      const interfacePath = isUserSession ? '/godgpt/create-session' : '/godgpt/guest/create-session';
+      const interfaceName = isUserSession ? 'User Create-Session' : 'Create-Session';
       
       interfaceStats.push({
-        name: 'Create-Session',
-        path: '/godgpt/guest/create-session',
+        name: interfaceName,
+        path: interfacePath,
         successRate: createSessionSuccessRate,
         avgResponseTime: createSessionAvgResponseTime,
         p95ResponseTime: createSessionP95ResponseTime,
@@ -595,8 +600,8 @@ class K6CoreReportGenerator {
         requests: createSessionRequests
       });
       
-      console.log('📊 Create-Session接口统计:');
-      console.log('   - 接口路径: /godgpt/guest/create-session');
+      console.log('📊 ' + interfaceName + '接口统计:');
+      console.log('   - 接口路径:', interfacePath);
       console.log('   - 虚拟用户数:', virtualUsers + ' 个');
       console.log('   - 执行时长:', totalDuration + ' 秒');
       console.log('   - 成功率:', createSessionSuccessRate + '%');
@@ -617,9 +622,14 @@ class K6CoreReportGenerator {
         Math.round(metrics.chat_response_duration.max || 0) : 'N/A';
       const chatRequests = metrics.chat_response_success_rate.passes || 0;
       
+      // 根据是否有session_creation_success_rate判断是游客还是已登录用户
+      const isUserChat = metrics.session_creation_success_rate && metrics.chat_response_success_rate;
+      const chatPath = isUserChat ? '/godgpt/chat' : '/godgpt/guest/chat';
+      const chatName = isUserChat ? 'User Chat' : 'Chat';
+      
       interfaceStats.push({
-        name: 'Chat',
-        path: '/godgpt/guest/chat',
+        name: chatName,
+        path: chatPath,
         successRate: chatSuccessRate,
         avgResponseTime: chatAvgResponseTime,
         p95ResponseTime: chatP95ResponseTime,
@@ -627,8 +637,8 @@ class K6CoreReportGenerator {
         requests: chatRequests
       });
       
-      console.log('📊 Chat接口统计:');
-      console.log('   - 接口路径: /godgpt/guest/chat');
+      console.log('📊 ' + chatName + '接口统计:');
+      console.log('   - 接口路径:', chatPath);
       console.log('   - 虚拟用户数:', virtualUsers + ' 个');
       console.log('   - 执行时长:', totalDuration + ' 秒');
       console.log('   - 成功率:', chatSuccessRate + '%');
@@ -643,8 +653,22 @@ class K6CoreReportGenerator {
     
     // 为每个检测到的接口生成统计表格
     interfaceStats.forEach((interfaceData, index) => {
-      const icon = interfaceData.name === 'Create-Session' ? '🔐' : '💬';
-      const color = interfaceData.name === 'Create-Session' ? '#4facfe' : '#ff6b6b';
+      let icon = '🔐';
+      let color = '#4facfe';
+      
+      if (interfaceData.name === 'User Create-Session') {
+        icon = '🔐';
+        color = '#4facfe';
+      } else if (interfaceData.name === 'Create-Session') {
+        icon = '🔐';
+        color = '#4facfe';
+      } else if (interfaceData.name === 'User Chat') {
+        icon = '💬';
+        color = '#ff6b6b';
+      } else if (interfaceData.name === 'Chat') {
+        icon = '💬';
+        color = '#ff6b6b';
+      }
       
              htmlContent += `
          <!-- ${interfaceData.name}接口独立统计 -->
